@@ -1,2 +1,7 @@
-data filter=lfs diff=lfs merge=lfs -text
+data/augmented_dataset.csv filter=lfs diff=lfs merge=lfs -text
+data/df_smiles_final.csv filter=lfs diff=lfs merge=lfs -text
+data/Final_Ligand_dataset.csv filter=lfs diff=lfs merge=lfs -text
+data/Final_Receptor_dataset.csv filter=lfs diff=lfs merge=lfs -text
+data/randomly_selected_15-lox_ligands.csv filter=lfs diff=lfs merge=lfs -text
+data/Selected[[:space:]]15-LOX[[:space:]]inhibitors_NE7.csv filter=lfs diff=lfs merge=lfs -text
 data/*.csv filter=lfs diff=lfs merge=lfs -text
