@@ -35,7 +35,7 @@ def load_csv(**kwargs):
 
 @st.cache_resource
 def load_model():
-    return joblib.load('../saved_models/best_model.joblib')
+    return joblib.load('saved_models/best_model.joblib')
 
 
 @st.cache_data

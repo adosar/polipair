@@ -28,7 +28,7 @@ please refer to the official [Streamlit
 documentation](https://docs.streamlit.io/knowledge-base/using-streamlit/where-file-uploader-store-when-deleted).
 Use at your own risk.
 ''', unsafe_allow_html=True)
-st.logo('images/logo.png', size='large')
+st.logo('webapp/images/logo.png', size='large')
 st.sidebar.subheader('How to Cite')
 st.sidebar.write(rf"""
 If you find PoLiPaiR useful, please
@@ -47,7 +47,7 @@ with cols[1]:
 
 # Titlebar
 # =======================================
-st.image('images/logo.png')
+st.image('webapp/images/logo.png')
 st.divider()
 st.title('🎉 Welcome to PoLiPaiR')
 st.markdown("""
@@ -129,7 +129,7 @@ with col2:
             )
 
 df_pockets = load_csv(
-        filepath_or_buffer='../data/Final_Receptor_dataset.csv', 
+        filepath_or_buffer='data/Final_Receptor_dataset.csv',
         index_col='id'
         )
 
