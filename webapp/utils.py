@@ -10,14 +10,20 @@ descriptors = rdMolDescriptors.Properties(descriptor_names)
 
 
 def canonicalize_smiles(smiles: str):
-    return Chem.CanonSmiles(smiles)
+    try:
+        return Chem.CanonSmiles(smiles)
+    except:
+        return None
 
 
 def smiles_to_desc(smiles: str):
-    mol = Chem.MolFromSmiles(canonicalize_smiles(smiles))
-    if mol is None:
+    inp_smiles = canonicalize_smiles(smiles)
+
+    if inp_smiles is None:
         return [None] * len(descriptor_names)
-    return list(descriptors.ComputeProperties(mol))
+    else:
+        mol = Chem.MolFromSmiles(inp_smiles)
+        return list(descriptors.ComputeProperties(mol))
 
 
 def ligands_to_desc(ligands: list[str]):
