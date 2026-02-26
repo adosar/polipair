@@ -5,6 +5,21 @@ from utils import ligands_to_desc, load_csv, load_model, prepare_inputs
 
 logo_link = r'https://raw.githubusercontent.com/adosar/polipair/master/webapp/images/logo.png'
 
+# Configuration
+# =======================================
+st.set_page_config(
+        page_title='PoLiPaiR',
+        #page_icon='🤖',
+        layout='wide',
+        initial_sidebar_state='expanded',
+        menu_items={
+            'Get Help': 'https://github.com/adosar/polipair/discussions',
+            'Report a bug': 'https://github.com/adosar/polipair/issues',
+            }
+        )
+check_icon = ':material/check_circle:'
+info_icon = ':material/info:'
+
 # Sidebar
 # =======================================
 st.sidebar.header('About')
@@ -158,13 +173,34 @@ if event.selection.rows:  # Show features of selected pocket
 # Results
 # =======================================
 st.header('🔮 Predictions', divider=True)
-if not event.selection.rows:
-    st.warning('Please select a protein pocket to proceed.', icon=':material/warning:')
-if not uploaded_file:
-    st.warning('Please upload a CSV file containing ligand SMILES to proceed.', icon=':material/warning:')
+
+steps_completed = 0
+if event.selection.rows:
+    steps_completed += 1
+if uploaded_file:
+    steps_completed += 1
+
+total_steps = 2
+progress = steps_completed / total_steps
+st.progress(progress)
+st.caption(f"{steps_completed} / {total_steps} steps completed")
+
+if steps_completed < total_steps:
+    st.info('Complete all steps to generate predictions.', icon=info_icon)
+
+#st.write(
+#    f"{check_icon if event.selection.rows else '⬜'} Select a protein pocket to proceed"
+#)
+#st.write(
+#    f"{check_icon if uploaded_file else '⬜'} Upload ligand CSV file to proceed"
+#)
+#if not event.selection.rows:
+#    st.warning('Please select a protein pocket to proceed.', icon=':material/warning:')
+#if not uploaded_file:
+#    st.warning('Please upload a CSV file containing ligand SMILES to proceed.', icon=':material/warning:')
 if event.selection.rows and uploaded_file:
     st.success(
-            "Pocket selected and ligands uploaded successfully. Below are the predicted rankings.",
+            "Pocket selected and ligands uploaded successfully. Below are the predictions of PoLiPaiR.",
             icon=":material/check_circle:"
             )
     model = load_model()
@@ -180,9 +216,10 @@ if event.selection.rows and uploaded_file:
         fitness**.
 
         Use it to prioritize ligands for your selected pocket.
-        """, icon=':material/info:')
+        """, icon=info_icon)
     st.write(X.loc[:, 'Score'])
 
-
+# Copyright
+# =======================================
 st.caption('')
 st.caption(':material/copyright: Copyright 2026, Antonios P. Sarikas.')
