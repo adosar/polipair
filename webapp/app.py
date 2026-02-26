@@ -3,6 +3,7 @@ import pandas as pd
 
 from utils import ligands_to_desc, load_csv, load_model, prepare_inputs
 
+logo_link = r'https://raw.githubusercontent.com/adosar/polipair/master/webapp/images/logo.png'
 
 # Sidebar
 # =======================================
@@ -28,7 +29,7 @@ please refer to the official [Streamlit
 documentation](https://docs.streamlit.io/knowledge-base/using-streamlit/where-file-uploader-store-when-deleted).
 Use at your own risk.
 ''', unsafe_allow_html=True)
-st.logo('webapp/images/logo.png', size='large')
+st.logo(logo_link, size='large')
 st.sidebar.subheader('How to Cite')
 st.sidebar.write(rf"""
 If you find PoLiPaiR useful, please
@@ -47,7 +48,12 @@ with cols[1]:
 
 # Titlebar
 # =======================================
-st.image('webapp/images/logo.png')
+st.markdown(rf"""
+<h1 align="center">
+  <img alt="Logo"
+  src="{logo_link}" width=50%/>
+</h1>
+""", unsafe_allow_html=True)
 st.divider()
 st.title('🎉 Welcome to PoLiPaiR')
 st.markdown("""
