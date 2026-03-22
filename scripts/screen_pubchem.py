@@ -26,4 +26,11 @@ for b in tqdm(pq_iter, desc='Screening Pubchem'):
     cids.extend(list(X_input.index))
 
 df = pd.DataFrame(dict(Score=np.concat(preds)), index=cids)
+
+df_smiles = pd.read_parquet('../data/ligands_pubchem_with_smiles.parquet')
+df_smiles.set_index('CID', inplace=True)
+
+# Add smiles also as identifier
+df['smiles_canonical'] = df_smiles.loc[df.index, ['smiles_canonical']]
+
 df.to_csv('../results/pubchem_1lox_ligand_scores.csv', index_label='CID')

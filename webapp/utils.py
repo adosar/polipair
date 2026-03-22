@@ -1,8 +1,11 @@
+from stqdm import stqdm
+import numpy as np
 import joblib
 import streamlit as st
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
+import pyarrow.parquet as pq
 
 
 descriptor_names = list(rdMolDescriptors.Properties.GetAvailableProperties())
@@ -39,11 +42,9 @@ def load_csv(**kwargs):
     return pd.read_csv(**kwargs)
 
 
-@st.cache_data
 def load_pubchem():
-    foo = pd.read_parquet('/home/ansar/temp/large.parquet')
-    foo = pd.concat([foo]*5, axis=0)
-    return foo
+    pq_file = pq.ParquetFile('data/ligands_pubchem.parquet')
+    return pq_file.iter_batches(batch_size=10_000)
 
 
 @st.cache_resource
@@ -51,12 +52,37 @@ def load_model():
     return joblib.load('saved_models/best_model.joblib')
 
 
-@st.cache_data
 def prepare_inputs(X_poc, X_lig):
-    X_input = pd.concat([X_poc] * len(X_lig), ignore_index=True)
+    X_input = pd.concat([X_poc] * len(X_lig))
     X_input.index = X_lig.index
 
     X_input = pd.concat([X_input, X_lig], axis=1)
     X_input.dropna(inplace=True)
 
     return X_input
+
+
+def predict(X_poc, X_lig):
+    model = load_model()
+
+    # Ligands from user
+    if isinstance(X_lig, pd.DataFrame):
+        X_input = prepare_inputs(X_poc, X_lig)
+        preds = model.predict_proba(X_input)[:, 1]
+
+        return pd.DataFrame(dict(Score=preds), index=list(X_input.index))
+
+    # Ligands from PubChem
+    else:
+        total_batches = 600  # 6_004_131 rows, 10_000 batch size
+        cids = []
+        preds = []
+
+        for b in stqdm(X_lig, total=total_batches, desc='Screening PubChem'):
+            b_lig = b.to_pandas()
+            X_input = prepare_inputs(X_poc, b_lig)
+
+            preds.append(model.predict_proba(X_input)[:, 1])
+            cids.extend(list(X_input.index))
+
+        return pd.DataFrame(dict(Score=np.concat(preds)), index=cids)

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from utils import ligands_to_desc, load_csv, load_pubchem, load_model, prepare_inputs
+from utils import ligands_to_desc, load_csv, load_pubchem, predict, prepare_inputs
 
 logo_link = r'https://raw.githubusercontent.com/adosar/polipair/master/webapp/images/logo.png'
 
@@ -100,7 +100,7 @@ st.header('🔬 Select pocket to analyze', divider=True)
 st.markdown("""
 Browse the available protein pockets and select the one you would like to analyze.
 
-Use the volume and surface sliders to filter and narrow down the list to pockets that match your criteria.
+Use the sliders to narrow down the list of pockets or search directly with ID from `PDBbind`.
 """)
 
 col1, col2 = st.columns(2)
@@ -192,9 +192,8 @@ if option == option_list[0]:
             st.write(X_ligands)
 
 elif option == option_list[1]:
-    st.write('Approximately 1 million ligands from PubChem will be used as candidates.')
+    st.write('Approximately 6 million ligands from PubChem will be used as candidates.')
     X_ligands = load_pubchem()
-    st.write(X_ligands.shape)
 
 
 # Results
@@ -217,21 +216,17 @@ if steps_completed < total_steps:
 
 if event.selection.rows and X_ligands is not None:
     st.success(
-            "Pocket and candidate ligands selected successfully. Below are the predictions of PoLiPaiR.",
+            "Pocket and candidate ligands selected successfully. "
+            "Below are the **predictions** of PoLiPaiR in **descending order**.",
             icon=":material/check_circle:"
             )
 
     # Generate predictions
-    model = load_model()
-    X = prepare_inputs(X_pocket, X_ligands)
     with st.spinner('Generating predictions...', show_time=True):
-        preds = model.predict_proba(X)[:, 1]  # Probability of "fit"
+        predictions = predict(X_pocket, X_ligands)
 
-    # Show predictions
-    X['Score'] = preds
-    X.sort_values(by='Score', ascending=False, inplace=True)
-
-    st.dataframe(X['Score'].iloc[:preds_show_lim])
+    predictions.sort_values(by='Score', ascending=False, inplace=True)
+    st.dataframe(predictions.iloc[:preds_show_lim])
 
     with st.expander('What **Score** represents?'):
         st.info("""
