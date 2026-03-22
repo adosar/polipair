@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from utils import ligands_to_desc, load_csv, load_model, prepare_inputs
+from utils import ligands_to_desc, load_csv, load_pubchem, load_model, prepare_inputs
 
 logo_link = r'https://raw.githubusercontent.com/adosar/polipair/master/webapp/images/logo.png'
 
@@ -19,6 +19,7 @@ st.set_page_config(
         )
 check_icon = ':material/check_circle:'
 info_icon = ':material/info:'
+preds_show_lim = 50_000
 
 # Sidebar
 # =======================================
@@ -86,41 +87,12 @@ PoLiPaiR supports three core workflows:
 3. **Rank a list of candidate ligands for a given target pocket**.
 
 At the moment, the demo provides only the second option — you can select a
-target protein pocket from a library of over 16,000 pockets, upload a CSV file
-containing your candidate ligands, and receive a ranked list based on their
-predicted fitness scores.
+target protein pocket from a library of over 16,000 pockets, select your
+candidate ligands, and receive a ranked list based on their predicted fitness
+scores.
 """)
 
 
-
-# Ligands upload
-# =======================================
-st.header('📤 Upload your ligands', divider=True)
-st.markdown("""
-Please upload a `.csv` file containing your candidate ligands.
-
-The file **must include a column named `smiles`** containing the SMILES representation of each ligand.
-
-Example of a valid `.csv` file:
-
-```csv
-smiles
-CC
-CCC
-CCO
-```
-""")
-
-uploaded_file = st.file_uploader(
-        'Upload a `.csv` file containing SMILES of ligands',
-        type='csv',
-        max_upload_size=1
-        )
-if uploaded_file:
-    df_ligands = pd.read_csv(uploaded_file)
-    with st.expander('Show features of uploaded ligands'):
-        X_ligands = ligands_to_desc(list(df_ligands.smiles))
-        st.write(X_ligands)
 
 # Pocket selection
 # =======================================
@@ -170,6 +142,61 @@ if event.selection.rows:  # Show features of selected pocket
         X_pocket = df_filtered.iloc[[index]]
         st.write(X_pocket.iloc[0])  # Visualize as Series
 
+
+# Ligands upload
+# =======================================
+st.header('📋 Select candidate ligands', divider=True)
+
+X_ligands = None
+
+option_list = [
+    'I will upload my own ligands',
+    'I will use ligands from PubChem',
+    ]
+
+option = st.selectbox(
+    'How would you like to provide candidate ligands?',
+    option_list,
+    index=None,
+    placeholder='Select an option',
+)
+
+if option == option_list[0]:
+    st.markdown("""
+    The file **must include a column named `smiles`** containing the SMILES
+    representation of each ligand.
+    """)
+
+    with st.expander('Example of a valid `.csv` file'):
+        st.markdown("""
+        ```csv
+        smiles
+        CC
+        CCC
+        CCO
+        ```
+        """)
+
+    #st.markdown("""
+    #Please upload a `.csv` file containing your candidate ligands.
+    #""")
+    uploaded_file = st.file_uploader(
+            'Upload a `.csv` file containing SMILES of ligands',
+            type='csv',
+            max_upload_size=1
+            )
+    if uploaded_file:
+        df_ligands = pd.read_csv(uploaded_file)
+        with st.expander('Show features of uploaded ligands'):
+            X_ligands = ligands_to_desc(list(df_ligands.smiles))
+            st.write(X_ligands)
+
+elif option == option_list[1]:
+    st.write('Approximately 1 million ligands from PubChem will be used as candidates.')
+    X_ligands = load_pubchem()
+    st.write(X_ligands.shape)
+
+
 # Results
 # =======================================
 st.header('🔮 Predictions', divider=True)
@@ -177,7 +204,7 @@ st.header('🔮 Predictions', divider=True)
 steps_completed = 0
 if event.selection.rows:
     steps_completed += 1
-if uploaded_file:
+if X_ligands is not None:
     steps_completed += 1
 
 total_steps = 2
@@ -188,25 +215,24 @@ st.caption(f"{steps_completed} / {total_steps} steps completed")
 if steps_completed < total_steps:
     st.info('Complete all steps to generate predictions.', icon=info_icon)
 
-#st.write(
-#    f"{check_icon if event.selection.rows else '⬜'} Select a protein pocket to proceed"
-#)
-#st.write(
-#    f"{check_icon if uploaded_file else '⬜'} Upload ligand CSV file to proceed"
-#)
-#if not event.selection.rows:
-#    st.warning('Please select a protein pocket to proceed.', icon=':material/warning:')
-#if not uploaded_file:
-#    st.warning('Please upload a CSV file containing ligand SMILES to proceed.', icon=':material/warning:')
-if event.selection.rows and uploaded_file:
+if event.selection.rows and X_ligands is not None:
     st.success(
-            "Pocket selected and ligands uploaded successfully. Below are the predictions of PoLiPaiR.",
+            "Pocket and candidate ligands selected successfully. Below are the predictions of PoLiPaiR.",
             icon=":material/check_circle:"
             )
+
+    # Generate predictions
     model = load_model()
     X = prepare_inputs(X_pocket, X_ligands)
-    preds = model.predict_proba(X)[:, 1]  # Probability of "fit"
+    with st.spinner('Generating predictions...', show_time=True):
+        preds = model.predict_proba(X)[:, 1]  # Probability of "fit"
+
+    # Show predictions
     X['Score'] = preds
+    X.sort_values(by='Score', ascending=False, inplace=True)
+
+    st.dataframe(X['Score'].iloc[:preds_show_lim])
+
     with st.expander('What **Score** represents?'):
         st.info("""
         **Score** represents the predicted probability that the pocket–ligand
@@ -217,7 +243,6 @@ if event.selection.rows and uploaded_file:
 
         Use it to prioritize ligands for your selected pocket.
         """, icon=info_icon)
-    st.write(X.loc[:, 'Score'])
 
 # Copyright
 # =======================================

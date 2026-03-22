@@ -39,6 +39,13 @@ def load_csv(**kwargs):
     return pd.read_csv(**kwargs)
 
 
+@st.cache_data
+def load_pubchem():
+    foo = pd.read_parquet('/home/ansar/temp/large.parquet')
+    foo = pd.concat([foo]*5, axis=0)
+    return foo
+
+
 @st.cache_resource
 def load_model():
     return joblib.load('saved_models/best_model.joblib')
