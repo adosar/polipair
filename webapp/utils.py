@@ -1,4 +1,3 @@
-from stqdm import stqdm
 import numpy as np
 import joblib
 import streamlit as st
@@ -70,19 +69,26 @@ def predict(X_poc, X_lig):
         X_input = prepare_inputs(X_poc, X_lig)
         preds = model.predict_proba(X_input)[:, 1]
 
-        return pd.DataFrame(dict(Score=preds), index=list(X_input.index))
+        return pd.DataFrame(dict(Smiles=list(X_input.index), Score=preds))
 
     # Ligands from PubChem
     else:
-        total_batches = 600  # 6_004_131 rows, 10_000 batch size
+        total_batches = 601  # 6_004_131 rows, 10_000 batch size
         cids = []
         preds = []
 
-        for b in stqdm(X_lig, total=total_batches, desc='Screening PubChem'):
+        prog_bar = st.progress(0.)
+
+        for i, b in enumerate(X_lig, start=1):
             b_lig = b.to_pandas()
             X_input = prepare_inputs(X_poc, b_lig)
 
             preds.append(model.predict_proba(X_input)[:, 1])
             cids.extend(list(X_input.index))
 
-        return pd.DataFrame(dict(Score=np.concat(preds)), index=cids)
+            progress = i / total_batches
+            prog_bar.progress(progress, text=f'Screening PubChem: {progress*100:.1f}%')
+
+        prog_bar.empty()
+
+        return pd.DataFrame(dict(CID=cids, Score=np.concat(preds)))
